@@ -1,47 +1,87 @@
-function emailValidate(requestObject, accountSId, authToken, baseUrl, requestType, dataType, sigMethod, nonce, version) {
-    if (baseUrl == undefined || (baseUrl.length) > 0 == false) {
-        baseUrl = "https://api.emailage.com/EmailAgeValidator/"
-    }
-
-    if (!sigMethod)
-        sigMethod = "HMAC-SHA1";
-
-    if (!version)
-        version = "1.0";
-
-    var authObject = getAuthObject(dataType, accountSId, sigMethod, version);
-
-    if (nonce)
-        authObject.oauth_nonce = nonce;
-
-    var oauthPostModel = getOAuthPostModel(requestType, authObject, baseUrl);
-    var oauthData = getOauthData(oauthPostModel);
-    var sig = oauthSign(authToken + '&', oauthData, sigMethod);
-    var requestUrl = oauthPostModel.action + "?" + getParameterString(oauthPostModel.parameters) + "&oauth_signature=" + percentEncode(sig);
-    var result = "";
-
-    $.ajax({
-        type: requestType,
-        url: requestUrl,
-        dataType: dataType,
-        data: requestObject,
-        async: false,
-        success: function (emailValidResult) {
-            return (emailValidResult);
-        },
-        error: function (xmlhttprequest, textstatus, message) {
-            return textstatus;
+function emailValidate(requestObject, accountSId, authToken, baseUrl, requestType, dataType, sigMethod, version) {
+    try {
+        var minFound = false;
+        var invalidParameter = false;
+        for (const property in requestObject) {
+            if(property =='email' || property =='ip') {
+                minFound = true;
+            }
+            if (typeof (ValidInputs.find(element => element == property)) === 'undefined') {
+                invalidParameter = true;
+            }
         }
-    }).done(function (response) {
-        result = response;
-    });
-    return result;
+        var exception="";
+        if(!minFound) {
+            exception += 'request must contain email or ip';
+        }
+        if(invalidParameter) {
+            exception += ' invalid request parameter'
+        }
+        if(exception.length > 0)
+            throw exception
+
+        /*Set Defaults*/
+        if (!baseUrl) {
+            baseUrl = "https://api.emailage.com/EmailAgeValidator/"
+        }
+
+        if (!requestType) {
+            requestType = "POST"
+        }
+
+        if (!dataType) {
+            dataType = "json"
+        }
+
+        if (!sigMethod) {
+            sigMethod = "HMAC-SHA1";
+        }
+
+        if (!version) {
+            version = "1.0";
+        }
+
+
+        var nonce = getNonce(10);
+
+        var authObject = getAuthObject(dataType, accountSId, sigMethod, version);
+
+        if (nonce) {
+            authObject.oauth_nonce = nonce;
+        }
+
+        var oauthPostModel = getOAuthPostModel(requestType, authObject, baseUrl);
+        var oauthData = getOauthData(oauthPostModel);
+        var sig = oauthSign(authToken + '&', oauthData, sigMethod);
+        var requestUrl = oauthPostModel.action + "?" + getParameterString(oauthPostModel.parameters) + "&oauth_signature=" + percentEncode(sig);
+        var result = "";
+
+        $.ajax({
+            type: requestType,
+            url: requestUrl,
+            dataType: dataType,
+            data: requestObject,
+            async: false,
+            success: function (emailValidResult) {
+                return (emailValidResult);
+            },
+            error: function (xmlhttprequest, textstatus, message) {
+                return textstatus;
+            }
+        }).done(function (response) {
+            result = response;
+        });
+        return result;
+    } catch (ex) {
+        return ex;
+    }
 };
 
 var getAuthObject = function (dataType, accountSId, sigMethod, version) {
 
-    if (!sigMethod)
+    if (!sigMethod) {
         sigMethod = "HMAC-SHA1";
+    }
     /**
      * HMAC-SHA256
      * HMAC-SHA234
@@ -138,3 +178,4 @@ var getNonce = function (length) {
     }
     return str;
 };
+
