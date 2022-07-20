@@ -9,3 +9,10 @@ A request object can be create using the RequestObject Class in the Models.js fi
 ## Sample validator html page
 A sample validator html page has been provided to test out functionality. A result class in the model.js file shows the provides a list of result outputs.
 
+## Dependencies
+* jsSHA
+* jQuery
+
+
+
+
